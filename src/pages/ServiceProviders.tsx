@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import AdminHeader from '@/components/AdminHeader';
+import { useToast } from '@/components/ui/use-toast';
 import { 
   Card, 
   CardContent, 
@@ -35,6 +36,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Filter, MoreHorizontal, Plus, Search } from 'lucide-react';
@@ -110,9 +122,76 @@ const statusStyles = {
 };
 
 const ServiceProviders: React.FC = () => {
+  const { toast } = useToast();
   const [providers, setProviders] = useState<ServiceProvider[]>(mockServiceProviders);
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const filteredProviders = providers.filter(provider =>
+    provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    provider.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    provider.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleViewDetails = (provider: ServiceProvider) => {
+    setSelectedProvider(provider);
+    setOpenViewDialog(true);
+  };
+
+  const handleEditProvider = (provider: ServiceProvider) => {
+    setSelectedProvider(provider);
+    setOpenEditDialog(true);
+  };
+
+  const handleDeactivate = (provider: ServiceProvider) => {
+    const updatedProviders = providers.map(p => {
+      if (p.id === provider.id) {
+        return { ...p, status: p.status === 'active' ? 'inactive' : 'active' as 'active' | 'inactive' };
+      }
+      return p;
+    });
+    setProviders(updatedProviders);
+    toast({
+      title: "Status Updated",
+      description: `${provider.name} has been ${provider.status === 'active' ? 'deactivated' : 'activated'}.`,
+    });
+  };
+
+  const handleSaveEdit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedProvider) return;
+
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const updatedProvider = {
+      ...selectedProvider,
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      location: formData.get('location') as string,
+      services: (formData.get('services') as string).split(',').map(s => s.trim()),
+    };
+
+    const updatedProviders = providers.map(p =>
+      p.id === selectedProvider.id ? updatedProvider : p
+    );
+
+    setProviders(updatedProviders);
+    setOpenEditDialog(false);
+    toast({
+      title: "Provider Updated",
+      description: "The service provider has been successfully updated.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <AdminHeader title="Service Providers" />
@@ -131,6 +210,8 @@ const ServiceProviders: React.FC = () => {
                   type="text"
                   placeholder="Search providers..."
                   className="pl-8 w-full sm:w-60"
+                  value={searchQuery}
+                  onChange={handleSearch}
                 />
               </div>
               <Button variant="outline" size="icon">
@@ -198,7 +279,7 @@ const ServiceProviders: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {providers.map((provider) => (
+              {filteredProviders.map((provider) => (
                 <TableRow key={provider.id}>
                   <TableCell className="font-medium">
                     <div>
@@ -235,11 +316,20 @@ const ServiceProviders: React.FC = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Provider</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(provider)}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditProvider(provider)}>
+                          Edit Provider
+                        </DropdownMenuItem>
                         <DropdownMenuItem>View Bookings</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">Deactivate</DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={provider.status === 'active' ? 'text-red-600' : 'text-green-600'}
+                          onClick={() => handleDeactivate(provider)}
+                        >
+                          {provider.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -249,8 +339,141 @@ const ServiceProviders: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Details Dialog */}
+      <Dialog open={openViewDialog} onOpenChange={setOpenViewDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Provider Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this service provider.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProvider && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Name</Label>
+                <div className="col-span-3">{selectedProvider.name}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Email</Label>
+                <div className="col-span-3">{selectedProvider.email}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Phone</Label>
+                <div className="col-span-3">{selectedProvider.phone}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Location</Label>
+                <div className="col-span-3">{selectedProvider.location}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Services</Label>
+                <div className="col-span-3 flex flex-wrap gap-1">
+                  {selectedProvider.services.map(service => (
+                    <Badge key={service} variant="outline" className="bg-gray-100">
+                      {service}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Rating</Label>
+                <div className="col-span-3">⭐ {selectedProvider.rating}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Status</Label>
+                <div className="col-span-3">
+                  <Badge 
+                    variant="outline" 
+                    className={statusStyles[selectedProvider.status]}
+                  >
+                    {selectedProvider.status.charAt(0).toUpperCase() + selectedProvider.status.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Provider Dialog */}
+      <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Provider</DialogTitle>
+            <DialogDescription>
+              Make changes to the service provider's information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProvider && (
+            <form onSubmit={handleSaveEdit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label htmlFor="name">Business Name</Label>
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      defaultValue={selectedProvider.name}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      name="email" 
+                      type="email" 
+                      defaultValue={selectedProvider.email}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input 
+                      id="phone" 
+                      name="phone" 
+                      defaultValue={selectedProvider.phone}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input 
+                      id="location" 
+                      name="location" 
+                      defaultValue={selectedProvider.location}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="services">Services (comma separated)</Label>
+                    <Input 
+                      id="services" 
+                      name="services" 
+                      defaultValue={selectedProvider.services.join(', ')}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setOpenEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default ServiceProviders;
+
