@@ -8,6 +8,7 @@ import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/Dashboard";
 import ServiceProviders from "./pages/ServiceProviders";
 import PaymentGateways from "./pages/PaymentGateways";
+import VehicleTypes from "./pages/VehicleTypes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,7 +25,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/service-providers" element={<ServiceProviders />} />
             <Route path="/payment-gateways" element={<PaymentGateways />} />
-            {/* Add additional admin routes here */}
+            <Route path="/vehicle-types" element={<VehicleTypes />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
