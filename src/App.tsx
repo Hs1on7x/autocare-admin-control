@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import ServiceProviders from "./pages/ServiceProviders";
 import PaymentGateways from "./pages/PaymentGateways";
 import VehicleTypes from "./pages/VehicleTypes";
+import Bookings from "./pages/Bookings";
+import Orders from "./pages/Orders";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +29,9 @@ const App = () => (
             <Route path="/service-providers" element={<ServiceProviders />} />
             <Route path="/payment-gateways" element={<PaymentGateways />} />
             <Route path="/vehicle-types" element={<VehicleTypes />} />
+            <Route path="/bookings" element={<Bookings />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/users" element={<Users />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
